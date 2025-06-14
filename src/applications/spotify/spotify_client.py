@@ -61,6 +61,27 @@ class SpotifyWebApiClient:
             url='https://api.spotify.com/v1/me/player/recently-played?limit=1',
         )
 
+    def set_volume(self, volume_percent):
+        self.session.put(
+            url=f'https://api.spotify.com/v1/me/player/volume?volume_percent={volume_percent}',
+        )
+    
+    def check_saved_track(self, track_id):
+        result = self.session.get(
+            url=f'https://api.spotify.com/v1/me/tracks/contains?ids={track_id}',
+        )
+        return result[0] if result else False
+    
+    def save_track(self, track_id):
+        self.session.put(
+            url=f'https://api.spotify.com/v1/me/tracks?ids={track_id}',
+        )
+    
+    def remove_saved_track(self, track_id):
+        self.session.delete(
+            url=f'https://api.spotify.com/v1/me/tracks?ids={track_id}',
+        )
+
 class Device:
     def __init__(
         self,
@@ -130,6 +151,21 @@ class Session:
             )
 
         return self._execute_request(post_request)
+
+    def delete(self, url, json=None, **kwargs):
+        # Workaround for urequests not sending "Content-Length" on empty data
+        if json is None:
+            json = {}
+
+        def delete_request():
+            return requests.delete(
+                url=self._add_device_id(url),
+                headers=self._headers(),
+                json=json,
+                **kwargs,
+            )
+
+        return self._execute_request(delete_request)
 
     def _headers(self):
         return {'Authorization': 'Bearer {access_token}'.format(**self.credentials)}
